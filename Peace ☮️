@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily News Admin</title>
+<style>
+  /* Reset and body */
+  * { box-sizing: border-box; margin:0; padding:0; }
+  body { background-color:#000; color:#fff; font-family: Arial, sans-serif; }
+
+  header { padding:20px; text-align:center; font-size:2em; font-weight:bold; background-color:#111; }
+
+  main { padding:20px; display:flex; flex-direction: column; gap:30px; max-width:800px; margin:auto; }
+
+  form { display:flex; flex-direction: column; gap:10px; background-color:#111; padding:20px; border-radius:8px; }
+  input, textarea { padding:10px; border-radius:5px; border:none; font-size:1em; }
+  button { padding:10px 15px; background-color:#0af; border:none; border-radius:5px; cursor:pointer; color:#000; font-weight:bold; }
+  button:hover { opacity:0.8; }
+
+  #stats { background-color:#111; padding:20px; border-radius:8px; }
+  #stats h3 { margin-bottom:10px; }
+  #stats p { margin-bottom:5px; font-size:1em; }
+
+  /* Responsive */
+  @media (max-width:600px) {
+    main { padding:10px; }
+    input, textarea { font-size:0.9em; }
+    button { font-size:0.9em; }
+  }
+</style>
+</head>
+<body>
+
+<header>Daily News Admin</header>
+
+<main>
+
+  <form id="postForm">
+    <input type="text" id="title" placeholder="News Title" required />
+    <textarea id="content" placeholder="News Content" rows="6" required></textarea>
+    <input type="text" id="imageURL" placeholder="Image URL (optional)" />
+    <input type="text" id="videoURL" placeholder="Video URL (optional)" />
+    <button type="button" onclick="postNews()">Publish News</button>
+  </form>
+
+  <div id="stats">
+    <h3>Admin Stats</h3>
+    <p>Total News Posts: <span id="totalNews">0</span></p>
+    <p>Total Users (commenting emails): <span id="totalUsers">0</span></p>
+  </div>
+
+</main>
+
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore.js"></script>
+
+<script>
+  // --- PASTE YOUR FIREBASE CONFIG HERE ---
+  const firebaseConfig = {
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT_ID.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT_ID.appspot.com",
+    messagingSenderId: "XXXXXXX",
+    appId: "XXXXXXX"
+  };
+
+  // Initialize Firebase
+  const app = firebase.initializeApp(firebaseConfig);
+  const db = firebase.firestore();
+
+  // Function to post news
+  function postNews() {
+    const title = document.getElementById("title").value.trim();
+    const content = document.getElementById("content").value.trim();
+    const imageURL = document.getElementById("imageURL").value.trim();
+    const videoURL = document.getElementById("videoURL").value.trim();
+
+    if (!title || !content) { alert("Title and content are required!"); return; }
+
+    db.collection("news").add({
+      title: title,
+      content: content,
+      imageURL: imageURL,
+      videoURL: videoURL,
+      datePosted: firebase.firestore.Timestamp.now(),
+      views: 0,
+      comments: []
+    }).then(() => {
+      alert("News Posted Successfully!");
+      // Clear form
+      document.getElementById("title").value = "";
+      document.getElementById("content").value = "";
+      document.getElementById("imageURL").value = "";
+      document.getElementById("videoURL").value = "";
+      loadStats();
+    }).catch((error) => {
+      alert("Error posting news: " + error);
+    });
+  }
+
+  // Function to load stats
+  function loadStats() {
+    db.collection("news").get().then(snapshot => {
+      document.getElementById("totalNews").textContent = snapshot.size;
+
+      // Collect unique commenting emails
+      const emailSet = new Set();
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        if (data.comments) {
+          data.comments.forEach(c => emailSet.add(c.email));
+        }
+      });
+      document.getElementById("totalUsers").textContent = emailSet.size;
+    });
+  }
+
+  // Load stats on page load
+  loadStats();
+
+</script>
+
+</body>
+</html>
